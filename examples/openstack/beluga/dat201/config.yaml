@@ -1,0 +1,33 @@
+jupyterhub::jupyterhub_config_hash:
+    SbatchForm:
+        runtime:
+            min: 3.5
+            def: 4.0
+            max: 5.0
+        nprocs:
+            min: 1
+            def: 1
+            max: 1
+        memory:
+            min: 1024
+            max: 3000
+            def: 3000
+        oversubscribe:
+            def: true
+            lock: true
+        ui:
+            def: 'lab'
+    SlurmFormSpawner:
+        disable_form: true
+
+jupyterhub::enable_otp_auth: false
+
+jupyterhub::admin_groups: ['user55', 'user54', 'user53', 'user52', 'user51']
+
+jupyterhub::kernel::venv::packages: ['numpy', 'pandas', 'matplotlib', 'plotnine']
+
+profile::freeipa::mokey::enable_user_signup: false
+
+profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020']
+
+profile::workshop::userzip_url: 'https://github.com/calculquebec/analyse-donnees-python/archive/refs/heads/main.zip'
