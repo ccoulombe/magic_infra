@@ -4,36 +4,32 @@ terraform {
 
 module "openstack" {
   source         = "git::https://github.com/ComputeCanada/magic_castle.git//openstack"
-  config_git_url = "https://github.com/ComputeCanada/puppet-magic_castle.git"
+  config_git_url = "https://github.com/MagicCastle/k8s-environment.git"
   config_version = "main"
 
-  cluster_name = "phoenix"
-  domain       = "calculquebec.cloud"
+  cluster_name = "k8s-os"
+  domain       = "computecanada.dev"
   image        = "CentOS-7-x64-2020-03"
 
   instances = {
-    mgmt   = { type = "p4-6gb", tags = ["puppet", "mgmt", "nfs"], count = 1 }
-    login  = { type = "p2-3gb", tags = ["login", "public", "proxy"], count = 1 }
-    node   = { type = "p2-3gb", tags = ["node"], count = 1 }
+    master   = { type = "c2-7.5gb-31", tags = ["controller", "puppet", "public"], count = 1 }
+    replica  = { type = "c2-7.5gb-31", tags = ["controller"], count = 2 }
+    node     = { type = "c2-7.5gb-31", tags = ["worker"], count = 5 }
   }
 
   volumes = {
-    nfs = {
-      home     = { size = 100 }
-      project  = { size = 50 }
-      scratch  = { size = 50 }
+    gfs = {
+      data = { size = 100, type = "volumes-ssd" }
     }
   }
 
   public_keys = [file("~/.ssh/id_rsa.pub")]
 
-  nb_users = 10
-  # Shared password, randomly chosen if blank
-  guest_passwd = ""
-}
-
-output "accounts" {
-  value = module.openstack.accounts
+  # Magic Castle default firewall rules are too permissive
+  # for this example. The following restricts it to SSH only.
+  firewall_rules = [
+    {"name"="SSH", "from_port"=22, "to_port"=22, "ip_protocol"="tcp", "cidr"="0.0.0.0/0"},
+  ]
 }
 
 output "public_ip" {

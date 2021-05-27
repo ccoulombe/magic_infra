@@ -29,7 +29,7 @@ variable "image" {
 variable "volumes" {
   description = "Map that defines the volumes to be attached to the instances"
   validation {
-    condition     = alltrue(concat([for k_i, v_i in var.volumes: [for k_j, v_j in v_i: contains(keys(v_j), "size")]]...))
+    condition     = length(var.volumes) > 0 ? alltrue(concat([for k_i, v_i in var.volumes: [for k_j, v_j in v_i: contains(keys(v_j), "size")]]...)) : true
     error_message = "Each volume in var.volumes needs to have at least a size attribute."
   }
 }
@@ -140,7 +140,7 @@ variable "firewall_rules" {
 variable "generate_ssh_key" {
   type        = bool
   default     = false
-  description = "If set to true, Terraform will generate an ssh keypair to connect to the cluster. Default: false"
+  description = "If set to true, Terraform will generate an ssh key pair to connect to the cluster. Default: false"
 }
 
 variable "software_stack" {

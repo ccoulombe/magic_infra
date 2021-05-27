@@ -7,14 +7,19 @@ module "aws" {
   config_git_url = "https://github.com/ComputeCanada/puppet-magic_castle.git"
   config_version = "main"
 
-  cluster_name = "phoenix"
+  cluster_name = "spot-aws"
   domain       = "calculquebec.cloud"
-  image        = "ami-0a7c5b189b6460115" # CentOS 7 -  ca-central-1
+  image        = "ami-033e6106180a626d0" # CentOS 7 -  ca-central-1
 
   instances = {
     mgmt  = { type = "t3.large",  count = 1, tags = ["mgmt", "puppet", "nfs"] },
     login = { type = "t3.medium", count = 1, tags = ["login", "public", "proxy"] },
-    node  = { type = "t3.medium", count = 1, tags = ["node"] }
+    node  = {
+        tags       = ["node", "spot"],
+        type       = "t3.medium",
+        count      = 1,
+        spot_price = 0.02
+    }
   }
 
   volumes = {
@@ -28,8 +33,6 @@ module "aws" {
   public_keys = [file("~/.ssh/id_rsa.pub")]
 
   nb_users     = 10
-  # Shared password, randomly chosen if blank
-  guest_passwd = ""
 
   # AWS specifics
   region            = "ca-central-1"

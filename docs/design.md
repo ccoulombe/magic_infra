@@ -176,9 +176,12 @@ files define the interface common to all providers supported by Magic Castle.
 providers, for example the availability zone or the region.
 
 5. **Initialize the infrastructure**. Create a file named  `infrastructure.tf`. In this file,
-define the provider and include the `common/design` module.
+define the provider if it requires input parameters (for example the region)
+and include the `common/design` module.
     ```hcl
-    provider "provider_name" { }
+    provider "provider_name" {
+      region = var.region
+    }
 
     module "design" {
       source       = "../common/design"
@@ -272,7 +275,7 @@ Alibaba cloud has an answer for each resource, so we will use this provider in t
   cd magic_castle
   mkdir alicloud
   cd aliclcoud
-  ln -s ../commmon/{variables,outputs}.tf .
+  ln -s ../common/{variables,outputs}.tf .
   ```
 
 4. **Define cloud provider specifics variables**. Add the following to a new file `alicloud.tf`:
@@ -286,7 +289,9 @@ Alibaba cloud has an answer for each resource, so we will use this provider in t
 
 5. **Initialize the infrastructure**. Add the following to a new file `infrastructure.tf`:
   ```hcl
-  provider "alicloud" { }
+  provider "alicloud" {
+    region = var.region
+  }
 
   module "design" {
     source       = "../common/design"

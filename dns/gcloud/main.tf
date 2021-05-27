@@ -1,6 +1,3 @@
-provider "google" {
-}
-
 data "google_dns_managed_zone" "domain" {
   name    = var.zone_name
   project = var.project
@@ -30,15 +27,18 @@ resource "google_dns_record_set" "records" {
 }
 
 module "acme" {
-  source           = "../acme"
-  dns_provider     = "cloudflare"
-  name             = lower(var.name)
-  domain           = var.domain
-  email            = var.email
-  sudoer_username  = var.sudoer_username
-  public_instances = var.public_instances
-  ssh_private_key  = var.ssh_private_key
-  ssl_tags         = var.ssl_tags
+  source              = "../acme"
+  dns_provider        = "gcloud"
+  dns_provider_config = {
+    GCE_PROJECT = var.project
+  }
+  name                = lower(var.name)
+  domain              = var.domain
+  email               = var.email
+  sudoer_username     = var.sudoer_username
+  public_instances    = var.public_instances
+  ssh_private_key     = var.ssh_private_key
+  ssl_tags            = var.ssl_tags
 }
 
 output "hostnames" {
