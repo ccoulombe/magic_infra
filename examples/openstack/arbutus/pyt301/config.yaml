@@ -1,0 +1,34 @@
+jupyterhub::jupyterhub_config_hash:
+    SbatchForm:
+        runtime:
+            min: 3.5
+            def: 4.0
+            max: 5.0
+        nprocs:
+            min: 1
+            def: 4
+            max: 4
+        memory:
+            min: 1024
+            max: 22000
+            def: 21000
+        gpus:
+            def: 'gpu:1'
+            choices: ['gpu:1']
+        oversubscribe:
+            def: true
+            lock: true
+        ui:
+            def: 'lab' # ['notebook', 'lab', 'terminal']
+    SlurmFormSpawner:
+        disable_form: true
+
+jupyterhub::enable_otp_auth: false
+
+jupyterhub::admin_groups: ['user55', 'user54', 'user53', 'user52', 'user51']
+
+jupyterhub::kernel::venv::packages: ['numba', 'pycuda']
+
+profile::freeipa::mokey::enable_user_signup: false
+
+profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020']
