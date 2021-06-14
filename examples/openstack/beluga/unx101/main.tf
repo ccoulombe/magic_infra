@@ -5,7 +5,7 @@ terraform {
 module "openstack" {
   source         = "git::https://github.com/ComputeCanada/magic_castle.git//openstack"
   config_git_url = "https://github.com/ComputeCanada/puppet-magic_castle.git"
-  config_version = "11.1"
+  config_version = "11.2"
 
   cluster_name = "unx101"
   domain       = "calculquebec.cloud"
