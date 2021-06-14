@@ -209,7 +209,8 @@ customization, refer to [MC developer documentation](developers.md).
 **Requirement**: Must be valid HTTPS URL to a git repository describing a
 Puppet environment compatible with [Magic Castle](developers.md).
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: no effect. To change the Puppet configuration source,
+destroy the cluster or change it manually on the Puppet server.
 
 ### 4.3 config_version
 
@@ -220,7 +221,8 @@ version number of the release you have downloaded (i.e: `9.3`).
 **Requirement**: Must refer to a git commit, tag or branch existing
 in the git repository pointed by `config_git_url`.
 
-**Post build modification effect** rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: none. To change the Puppet configuration version,
+destroy the cluster or change it manually on the Puppet server.
 
 ### 4.4 cluster_name
 
@@ -230,7 +232,7 @@ the cluster in the Slurm accounting database
 
 **Requirement**: Must be lowercase alphanumeric characters and start with a letter and can include dashes. cluster_name must be 63 characters or less.
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: destroy and re-create all instances at next `terraform apply`.
 
 ### 4.5 domain
 
@@ -256,7 +258,7 @@ domain. You can verify no such record exist with `dig`:
     dig +short '*.${domain}'
     ```
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: destroy and re-create all instances at next `terraform apply`.
 
 ### 4.6 image
 
@@ -269,7 +271,7 @@ security patches and OS updates in advance.
 
 **Requirements**: the operating system on the image must be CentOS 7 or 8.
 
-**Post build modification effect**: none - if this variable is modified, existing
+**Post build modification effect**: none. If this variable is modified, existing
 instances will ignore the change and future instances will use the new value.
 
 #### 4.6.1 AWS
@@ -507,7 +509,9 @@ Magic Castle can create a key pair for unique to this cluster, see section
 including AWS and OpenStack because they do not support ed25519 and DSA
 is deprecated.
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: trigger scp of hieradata files at next `terraform apply`.
+The sudoer account `authorized_keys` file will be updated by each instance's Puppet agent
+following the copy of the hieradata files.
 
 ### 4.10 nb_users (optional)
 
@@ -559,7 +563,10 @@ Defines the username of the account with sudo privileges. The account
 ssh authorized keys are configured with the SSH public keys with
 `public_keys`.
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**: none. To change sudoer username,
+destroy the cluster or redefine the value of
+[`profile::base::sudoer_username`](https://github.com/computecanada/puppet-magic_castle#profilebase)
+in `hieradata`.
 
 ### 4.13 hieradata (optional)
 
@@ -571,15 +578,15 @@ Useful to override common configuration of Puppet classes.
 List of useful examples:
 - Receive logs of Puppet runs with changes to your email, add the
 following line to the string:
-    ```
+    ```yaml
     profile::base::admin_email: "me@example.org"
     ```
 - Define ip addresses that can never be banned by fail2ban:
-    ```
+    ```yaml
     profile::fail2ban::ignore_ip: ['132.203.0.0/16', '8.8.8.8']
     ```
 - Remove one-time password field from JupyterHub login page:
-    ```
+    ```yaml
     jupyterhub::enable_otp_auth: false
     ```
 
@@ -596,6 +603,7 @@ The file created from this string can be found on `puppet` as
 **Requirement**: The string needs to respect the [YAML syntax](https://en.wikipedia.org/wiki/YAML#Syntax).
 
 **Post build modification effect**: trigger scp of hieradata files at next `terraform apply`.
+Each instance's Puppet agent will be reloaded following the copy of the hieradata files.
 
 ### 4.14 firewall_rules (optional)
 
@@ -627,7 +635,15 @@ file-provisioner. The public key will be added to the sudoer account authorized 
 This parameter is useful when Terraform does not have access to one of the private key associated with the
 public keys provided in `public_keys`.
 
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
+**Post build modification effect**:
+- `false` -> `true`: will cause Terraform failure.
+Terraform will try to use the newly created private SSH key
+to connect to the cluster, while the corresponding public SSH
+key is yet registered with the sudoer account.
+- `true` -> `false`: will trigger a scp of terraform_data.yaml at
+next terraform apply. The Terraform public SSH key will be removed
+from the sudoer account `authorized_keys` file at next
+Puppet agent run.
 
 ### 4.16 software_stack (optional)
 
@@ -1087,10 +1103,8 @@ simply increase the value of `nb_users`, then call :
 terraform apply
 ```
 
-To trigger the account creation before the Puppet agent 30-minute window:
-1. Connect to `mgmt1` as `centos` or as the sudoer account.
-2. Restart puppet: `sudo systemctl restart puppet`.
-The accounts will be created in the following minutes.
+Each instance's Puppet agent will be reloaded following the copy of the hieradata files,
+and the new accounts will be created.
 
 
 ### 10.5 Restrict SSH Access
@@ -1122,19 +1136,19 @@ Repeat from step 3.
 ### 10.6 Add Packages to Jupyter Default Python Kernel
 
 The default Python kernel corresponds to the Python installed in `/opt/ipython-kernel`.
-Each compute node has its own copy of the environment. To install packages in
-this environment, on a compute node call:
-
+Each compute node has its own copy of the environment. To add packages to this
+environment, add the following lines to `hieradata` in `main.tf`:
+```yaml
+jupyterhub::kernel::venv::packages:
+  - package_A
+  - package_B
+  - package_C
 ```
-sudo /opt/ipython-kernel/bin/pip install <package_name>
-```
 
-This will install the package on a single compute node. To install it on every
-compute node, call the following command from the sudoer account and where `N`
-is the number of compute nodes in your cluster.
-
+and replace `package_*` by the packages you need to install.
+Then call:
 ```
-clush -w node[1-N] sudo /opt/ipython-kernel/bin/pip install <package_name>
+terraform apply
 ```
 
 ### 10.7 Activate Globus Endpoint
@@ -1188,12 +1202,9 @@ solutions to mitigate this problem.
 #### 10.9.1 Define a list of ip addresses that can never be banned
 
 fail2ban keeps a list of ip addresses that are allowed to fail to login without risking jail
-time. To add an ip address to that list, on `puppet` add to
-```
-/etc/puppetlabs/data/user_data.yaml
-```
-the following line:
-```
+time. To add an ip address to that list,  add the following lines
+to the variable `hieradata` in `main.tf`:
+```yaml
 fail2ban::ignoreip:
   - x.x.x.x
   - y.y.y.y
@@ -1202,28 +1213,25 @@ where `x.x.x.x` and `y.y.y.y` are ip addresses you want to add to the ignore lis
 The ip addresses can be written using CIDR notations.
 The ignore ip list on Magic Castle already includes `127.0.0.1/8` and the cluster subnet CIDR.
 
-Once the line is added, restart puppet on the login node(s):
+Once the line is added, call:
 ```
-sudo systemctl restart puppet
+terraform apply
 ```
 
 #### 10.9.2 Remove fail2ban ssh-route jail
 
 fail2ban rule that banned ip addresses that failed to connect
-with SSH can be disabled. To do so, on `puppet` add to
-```
-/etc/puppetlabs/data/user_data.yaml
-```
-the following line:
-```
+with SSH can be disabled. To do so, add the following line
+to the variable `hieradata` in `main.tf`:
+```yaml
 fail2ban::jails: ['ssh-ban-root']
 ```
 This will keep the jail that automatically ban any ip that tries to
 login as root, and remove the ssh failed password jail.
 
-Once the line is added, restart puppet on the login node(s):
+Once the line is added, call:
 ```
-sudo systemctl restart puppet
+terraform apply
 ```
 
 #### 10.9.3 Unban ip addresses
@@ -1243,18 +1251,15 @@ sudo fail2ban-client set ssh-route unbanip
 
 #### 10.9.4 Disable fail2ban
 
-While this is not recommended, fail2ban can be completely disabled. To do so, on `puppet` add to
-```
-/etc/puppetlabs/data/user_data.yaml
-```
-the following line:
-```
+While this is not recommended, fail2ban can be completely disabled. To do so, add the following line
+to the variable `hieradata` in `main.tf`:
+```yaml
 fail2ban::service_ensure: 'stopped'
 ```
 
-Once the line is added, restart puppet on the login node(s):
+then call :
 ```
-sudo systemctl restart puppet
+terraform apply
 ```
 
 ## 11. Customize Magic Castle Terraform Files
