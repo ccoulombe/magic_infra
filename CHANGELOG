@@ -3,6 +3,69 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+### [11.7] 2021-11-02
+
+### Changed
+- [OpenStack] Replaced `var.os_int_subnet` by `var.subnet_id` as subnet can have the same name accross networks.
+- [puppet] Update puppet module `consul_template` to 2.3.3.
+
+### Removed
+- [OpenStack] Removed `var.os_int_network`.
+
+## [11.6] 2021-10-12
+
+### Changed
+- [puppet] Replaced resolv.conf configuration with `file_line` by config of NetworkManager.
+- [puppet] Updated puppet-mysql version to fix encoding issue.
+- [puppet] Defined the seltype of ipa-rewrite.conf.
+
+## [11.5] 2021-10-06
+
+### Changed
+- [puppet] Fixed Slurm email sending (issue #144)
+- [puppet] Fixed freeipa server idstart value (PR #146)
+- [puppet] Deactivated expiration date of admin password (issue #147, PR #149)
+- [puppet] Fixed location of scratch symlink in mkhome.sh (issue #148, PR #150)
+
+## [11.4] 2021-09-22
+
+### Added
+- Added Elastic Fabric Adapter support for AWS
+- Generalized NFS volumes exportation to support more than home, project and scratch
+- [puppet] Added epel as requirement for gpu passthrough packages
+- [puppet] Added Slurm 21.08 to the list of versions that can be installed
+
+### Changed
+- Fixed puppet launch event in `cluster_config`
+- Updated `cloudflare_record` usage to support CloudFlare 3.0 Terraform module.
+- Users have to use a valid project name when submitting jobs.
+- `centos` can no longer submitted jobs.
+- [puppet] Disabled resource limit propagation in Slurm
+- [puppet] Configured ipa admin account passwd to never expire
+
+## [11.3] 2021-07-22
+
+### Added
+- Added documentation on how to use Terraform Cloud
+- Added a trigger when uploading SSL certificates
+- Added documentation on how to regenerate SSL certificates
+- Added support for Rocky Linux and AlmaLinux
+- [puppet] Added X11 forwarding enabling in Slurm config
+
+
+### Changed
+- Improved various sections of the documentation
+- Updated puppet-agent to 6.16.0
+- Updated puppet-server to 6.23.0
+- [puppet] Updated puppet-jupyterhub to v3.8.8
+- [cloud-init] Replaced deprecated ssh config algorithm selection parameter
+- [puppet] Replaced network-scripts by NetworkManager
+- [puppet] Fixed fail2ban config when not using CentOS
+- [puppet] Fixed powertools enabling when not using CentOS
+
+### Removed
+- [puppet] Removed dhclient package when os major release is 8
+
 ## [11.2] 2021-06-02
 
 ### Added
@@ -35,7 +98,7 @@ without rebuilding all instances.
 - [cloud-init] Check for the presence of `bootstrap.sh` in the puppet environment
 
 ### Changed
-- Fixed issue with Google Cloud DNS refering to CloudFlare (PR #167 @consideratio)
+- Fixed issue with Google Cloud DNS referring to CloudFlare (PR #167 @consideratio)
 - Fixed documentation (PR #169 @consideratio)
 - Fixed var.volumes validation - allowing the variable to be an empty map
 - Fixed terraform_facts.yaml format for cloud provider and region

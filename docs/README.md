@@ -17,53 +17,22 @@
 ## 1. Setup
 
 To use Magic Castle you will need:
-* Terraform (>= 0.14.2).
-* Access to a Cloud (e.g.: Compute Canada Arbutus).
-* Ability to communicate with the cloud provider API from your computer.
-* A project with operational limits meeting the requirements described in _Quotas_ subsection.
+1. Terraform (>= 0.14.2)
+2. Authenticated access to a cloud
+3. Ability to communicate with the cloud provider API from your computer
+4. A project with operational limits meeting the requirements described in _Quotas_ subsection.
+5. ssh-agent running and tracking your SSH key
 
-### 1.1 Quotas
+### 1.1 Terraform
 
-#### 1.1.1 OpenStack
+To install Terraform, follow the
+[tutorial](https://learn.hashicorp.com/tutorials/terraform/install-cli)
+or go directly on [Terraform download page](https://www.terraform.io/downloads.html).
 
-Minimum project requirements:
-* 1 floating IP
-* 1 security group
-* 1 network (see note 1)
-* 1 subnet (see note 1)
-* 1 router (see note 1)
-* 3 volumes
-* 3 instances
-* 8 VCPUs
-* 7 neutron ports
-* 12 GB of RAM
-* 11 security rules
-* 80 GB of volume storage
-
-**Note 1**: Magic Castle supposes the OpenStack project comes with a network, a subnet and a router already initialized. If any of these components is missing, you will need to create them manually before launching terraform.
-* [Create and manager networks, JUSUF user documentation](https://apps.fz-juelich.de/jsc/hps/jusuf/cloud/first_steps_cloud.html?highlight=dns#create-and-manage-networks)
-* [Create and manage network - UI, OpenStack Documentation](https://docs.openstack.org/horizon/latest/user/create-networks.html)
-* [Create and manage network - CLI, OpenStack Documentation](https://docs.openstack.org/ocata/user-guide/cli-create-and-manage-networks.html)
-
-
-#### 1.1.2 Google Cloud
-
-**Global**
-* 1 network
-* 1 subnetwork
-* 1 in-use IP address
-* 1 static IP address
-* 1 route
-* 11 firewall rules
-
-**Region**
-* 1 in-use IP addresses
-* 8 CPUs
-* 60 local SSD (GB)
-* 50 persistent Disk Standard (GB)
-
-To look and edit your GCP quota go to :
-[https://console.cloud.google.com/iam-admin/quotas](https://console.cloud.google.com/iam-admin/quotas)
+You can verify Terraform was properly installed by looking at the version in a terminal:
+```
+terraform version
+```
 
 ### 1.2 Authentication
 
@@ -104,18 +73,189 @@ and save the file.
 2. In a terminal located in the same folder as your OpenStack RC file,
 source the OpenStack RC file:
     ```
-    $ source *-openrc.sh
+    source *-openrc.sh
     ```
 This command will ask for a password, enter your OpenStack password.
 
+### 1.3 Cloud API
 
-### 1.3 Setup check
+Once you are authenticated with your cloud provider, you should be able to
+communicate with its API. This section lists for each provider some
+instructions to test this.
 
-1. Open a terminal
-2. Verify Terraform was properly installed by looking at the version
+#### 1.3.1 AWS
+
+1. In a dedicated temporary folder, create a file named `test_aws.tf`
+with the following content:
+    ```hcl
+    provider "aws" {
+      region = "us-east-1"
+    }
+
+    data "aws_ec2_instance_type" "example" {
+      instance_type = "t2.micro"
+    }
     ```
-    $ terraform version
+2. In a terminal, move to where the file is located, then:
+    ```shell
+    terraform init
     ```
+3. Finally, test terraform communication with AWS:
+    ```
+    terraform plan
+    ```
+    If everything is configured properly, terraform will output:
+    ``` 
+    No changes. Your infrastructure matches the configuration.
+    ```
+    Otherwise, it will output:
+    ```
+    Error: error configuring Terraform AWS Provider: no valid credential sources for Terraform AWS Provider found.
+    ```
+4. You can delete the temporary folder and its content.
+
+#### 1.3.2 Google Cloud
+
+In a terminal, enter:
+```
+gcloud projects list
+```
+It should output a table with 3 columns
+```
+PROJECT_ID NAME PROJECT_NUMBER
+```
+
+Take note of the `project_id` of the Google Cloud project you want to use,
+you will need it later.
+
+#### 1.3.3 Microsoft Azure
+
+In a terminal, enter:
+```
+az account show
+```
+It should output a JSON dictionary similar to this:
+```json
+{
+  "environmentName": "AzureCloud",
+  "homeTenantId": "98467e3b-33c2-4a34-928b-ed254db26890",
+  "id": "4dda857e-1d61-457f-b0f0-e8c784d1fb20",
+  "isDefault": true,
+  "managedByTenants": [],
+  "name": "Pay-As-You-Go",
+  "state": "Enabled",
+  "tenantId": "495fc59f-96d9-4c3f-9c78-7a7b5f33d962",
+  "user": {
+    "name": "user@example.com",
+    "type": "user"
+  }
+}
+```
+
+#### 1.3.4 OpenStack / OVH
+
+1. In a dedicated temporary folder, create a file named `test_os.tf`
+with the following content:
+    ```hcl
+    terraform {
+      required_providers {
+        openstack = {
+          source  = "terraform-provider-openstack/openstack"
+        }
+      }
+    }
+    data "openstack_identity_auth_scope_v3" "scope" {
+      name = "my_scope"
+    }
+    ```
+2. In a terminal, move to where the file is located, then:
+    ```shell
+    terraform init
+    ```
+3. Finally, test terraform communication with OpenStack:
+    ```
+    terraform plan
+    ```
+    If everything is configured properly, terraform will output:
+    ``` 
+    No changes. Your infrastructure matches the configuration.
+    ```
+    Otherwise, it will output:
+    ```
+    Error: Error creating OpenStack identity client:
+    ```
+    if the OpenStack cloud API cannot be reached.
+4. You can delete the temporary folder and its content.
+
+### 1.4 Quotas
+
+#### 1.4.1 AWS
+
+The default quotas set by Amazon are sufficient to build the Magic Castle
+AWS examples. To increase the limits, or request access to special
+resources like GPUs or high performance network interface, refer to
+[Amazon EC2 service quotas](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html).
+
+#### 1.4.2 Google Cloud
+
+The default quotas set by Google Cloud are sufficient to build the Magic Castle
+GCP examples. To increase the limits, or request access to special
+resources like GPUs, refer to
+[Google Compute Engine Resource quotas](https://cloud.google.com/compute/quotas).
+
+#### 1.4.3 Microsoft Azure
+
+The default quotas set by Microsoft Azure are sufficient to build the Magic Castle
+Azure examples. To increase the limits, or request access to special
+resources like GPUs or high performance network interface, refer to
+[Azure subscription and service limits, quotas, and constraints](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits).
+
+#### 1.4.4 OpenStack
+
+Minimum project requirements:
+* 1 floating IP
+* 1 security group
+* 1 network (see note 1)
+* 1 subnet (see note 1)
+* 1 router (see note 1)
+* 3 volumes
+* 3 instances
+* 8 VCPUs
+* 7 neutron ports
+* 12 GB of RAM
+* 11 security rules
+* 80 GB of volume storage
+
+**Note 1**: Magic Castle supposes the OpenStack project comes with a network, a subnet and a router already initialized. If any of these components is missing, you will need to create them manually before launching terraform.
+* [Create and manager networks, JUSUF user documentation](https://apps.fz-juelich.de/jsc/hps/jusuf/cloud/first_steps_cloud.html?highlight=dns#create-and-manage-networks)
+* [Create and manage network - UI, OpenStack Documentation](https://docs.openstack.org/horizon/latest/user/create-networks.html)
+* [Create and manage network - CLI, OpenStack Documentation](https://docs.openstack.org/ocata/user-guide/cli-create-and-manage-networks.html)
+
+#### 1.4.5 OVH
+
+The default quotas set by OVH are sufficient to build the Magic Castle
+OVH examples. To increase the limits, or request access to special
+resources like GPUs, refer to
+[OVHcloud - Increasing Public Cloud quotas](https://docs.ovh.com/ca/en/public-cloud/increase-public-cloud-quota/).
+
+### 1.5 ssh-agent
+
+To transfer configuration files, Terraform will connect to your cluster using SSH.
+To avoid providing your private key to Terraform directly, you will have to
+add it to the authentication agent, ssh-agent.
+
+To learn how to start ssh-agent and add keys, refer to
+[ssh-agent - How to configure, forwarding, protocol](https://www.ssh.com/academy/ssh/agent).
+
+**Note 1**: If you own more than one key pair, make sure the private key added to
+ssh-agent corresponds to the public key that will be granted access to your cluster
+(refer to [section 4.9 public_keys](#49-public_keys)).
+
+**Note 2**: If you have no wish to use ssh-agent, you can configure Magic Castle to
+generate a key pair specific to your cluster. The public key will be written in
+the sudoer `authorized_keys` and Terraform will be able to connect the cluster
+using the corresponding private key. For more information,
+refer to [section 4.15 generate_ssh_key](#415-generate_ssh_key-optional).
 
 ## 2. Cloud Cluster Architecture Overview
 
@@ -146,7 +286,7 @@ file. Further customization will be addressed during the second part of the work
 Terraform fetches the plugins required to interact with the cloud provider defined by
 our `main.tf` once when we initialize. To initialize, enter the following command:
 ```
-$ terraform init
+terraform init
 ```
 
 The initialization is specific to the folder where you are currently located.
@@ -269,7 +409,8 @@ should be mainly done through Puppet. Image customization is mostly
 envisioned as a way to accelerate the provisioning process by applying the
 security patches and OS updates in advance.
 
-**Requirements**: the operating system on the image must be CentOS 7 or 8.
+**Requirements**: the operating system on the image must be from the RedHat family.
+This includes CentOS (7, 8), Rocky Linux (8), and AlmaLinux (8).
 
 **Post build modification effect**: none. If this variable is modified, existing
 instances will ignore the change and future instances will use the new value.
@@ -279,11 +420,13 @@ instances will ignore the change and future instances will use the new value.
 The image field needs to correspond to the Amazon Machine Image (AMI) ID.
 AMI IDs are specific to regions and architectures. Make sure to use the
 right ID for the region and CPU architecture you are using (i.e: x86_64).
-Refer to
-[CentOS list of official images available on the AWS Marketplace](https://wiki.centos.org/Cloud/AWS#Official_and_current_CentOS_Public_Images) to find out which AMI ID
-you need to use.
 
-**Note**: Before you can use the AMI, you will need accept the usage terms
+To find out which AMI ID you need to use, refer to
+- [AlmaLinux OS Amazon Web Services AMIs](https://wiki.almalinux.org/cloud/AWS.html#community-amis)
+- [CentOS list of official images available on the AWS Marketplace](https://wiki.centos.org/Cloud/AWS#Official_and_current_CentOS_Public_Images)
+- [Rocky Linux]()
+
+**Note**: Before you can use the AMI, you will need to accept the usage terms
 and subscribe to the image on AWS Marketplace. On your first deployment,
 you will be presented an error similar to this one:
 ```
@@ -294,7 +437,7 @@ you will be presented an error similar to this one:
 │   67: resource "aws_instance" "instances" {
 ```
 To accept the terms and fix the error, visit the link provided in the error output,
-then click on the `Click to Subscribe` yellow button. CentOS images are free to use.
+then click on the `Click to Subscribe` yellow button.
 
 #### 4.6.2 Microsoft Azure
 
@@ -375,15 +518,16 @@ instance, while in Puppet code tags are used to identify roles of the instances.
 Terraform tags:
 - `login`: identify instances that will be pointed by the domain name A record
 - `proxy`: identify instances that will be pointed by the vhost A records
-- `public`: identify instances that need to have a public ip address and be accessible from Internet
+- `public`: identify instances that need to have a public ip address and be accessible from the Internet
 - `puppet`: identify the instance that will be configured as the main Puppet server
 - `spot`: identify instances that are to be spawned as spot/preemptible instances. This tag is supported in AWS, Azure and GCP and ignored by OpenStack and OVH.
+- `efa`: attach an Elastic Fabric Adapter network interface to the instance. This tag is supported in AWS.
 - `ssl`: identify instances that will receive a copy of the SSL wildcard certificate for the domain
 
 Puppet tags expected by the [puppet-magic_castle](https://www.github.com/ComputeCanada/puppet-magic_castle) environment.
 - `login`: identify a login instance (minimum: 2 CPUs, 2GB RAM)
 - `mgmt`: identify a management instance (minimum: 2 CPUs, 6GB RAM)
-- `nfs`: identify the instance that will act as an NFS server (minimum: 3 volumes named `home`, `project`and `scratch`)
+- `nfs`: identify the instance that will act as an NFS server.
 - `node`: identify a compute node instance (minimum: 1 CPUs, 2GB RAM)
 
 You are free to define your own additional tags.
@@ -392,10 +536,10 @@ You are free to define your own additional tags.
 
 Three optional attributes can be defined:
 1. `count`: number of virtual machines with this combination of hostname prefix, type and tags to create (default: 1).
-2. `disk_size`: size in gibibyte (GiB) of the instance's root disk containing
-the operating system and services software
-(default: see next table).
-3. `disk_type`: type of the instance's root disk (default: see next table).
+2. `disk_size`: size in gibibytes (GiB) of the instance's root disk containing
+the operating system and service software
+(default: see the next table).
+3. `disk_type`: type of the instance's root disk (default: see the next table).
 
 Default root disk's attribute value per provider:
 | Provider | `disk_type` | `disk_size` (GiB) |
@@ -483,7 +627,7 @@ volumes = {
 }
 ```
 
-The instance `server1` has three volumes attached to it, while the volumes tagged `mds` are
+The instance `server1` will have three volumes attached to it. The volumes tagged `mds` are
 not created since no instances have the corresponding tag.
 
 To define an infrastructure with no volumes, set the `volumes` variable to an empty map:
@@ -522,8 +666,8 @@ FreeIPA. Each user account shares the same randomly generated password.
 The usernames are defined as `userX` where `X` is a number between 1 and
 the value of `nb_users` (zero-padded, i.e.: `user01 if X < 100`, `user1 if X < 10`).
 
-Each user has a home folder on a shared NFS storage hosted by the management
-node.
+If an NFS NFS `home` volume is defined, each user will have a home folder
+on a shared NFS storage hosted on the NFS server node.
 
 User accounts do not have sudoer privileges. If you wish to use `sudo`,
 you will have to login using the sudoer account and the SSH keys listed
@@ -658,90 +802,9 @@ value to `eessi`.
 
 ## 5. Cloud Specific Configuration
 
-### 5.1 OpenStack and OVH
+### 5.1 Amazon Web Services
 
-#### 5.1.1 os_floating_ips (optional)
-
-**default value**: `{}`
-
-Defines a map of hostnames to preallocated floating ip addresses.
-If this variable is not set the instances tagged as public will be
-assigned a floating ip managed by Terraform. Instances that are
-tagged a public but do not have an entry in this map will also be
-assigned a floating ip managed by Terraform. Instances in this
-map that are not tagged as public will not be assigned a floating
-ip.
-
-This variable can be useful if you administer your DNS manually and
-you would like the keep the same domain name for your cluster at each
-build.
-
-**Post build modification effect**: change the floating ips assigned
-to the public instances.
-
-#### 5.1.2 os_ext_network (optional)
-
-**default value**: None
-
-Defines the name of the external network that provides the floating
-ips. Define this only if your OpenStack cloud provides multiple
-external networks, otherwise, Terraform can find it automatically.
-
-**Post build modification effect**: change the floating ips assigned to the public nodes.
-
-#### 5.1.3 os_int_network (optional)
-
-**default value**: None
-
-Defines the name of the internal network that provides the subnet
-on which the instances are connected. Define this only if you
-have more than one network defined in your OpenStack project.
-Otherwise, Terraform can find it automatically.
-
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
-
-#### 5.1.4 os_int_subnet (optional)
-
-**default value**: None
-
-Defines the name of the internal subnet on which the instances are
-connected. Define this only if you have more than one subnet defined in your
-OpenStack network. Otherwise, Terraform can find it automatically.
-Can be used to force a v4 subnet when both v4 and v6 exist.
-
-**Post build modification effect**: rebuild of all instances at next `terraform apply`.
-
-### 5.2 Google Cloud
-
-#### 5.2.1 project
-
-Defines the label of the unique identifier associated with the Google Cloud project in which the resources will be created.
-It needs to corresponds to GCP project ID, which is composed of the project name and a randomly
-assigned number.
-
-**Requirement**: Must be a valid Google Cloud project ID.
-
-**Post build modification effect**: rebuild of all resources at next `terraform apply`.
-
-#### 5.2.2 region
-
-Defines the name of the specific geographical location where the cluster resources will be hosted.
-
-**Requirement**: Must be a valid Google Cloud region. Refer to [Google Cloud documentation](https://cloud.google.com/compute/docs/regions-zones#available)
-for the list of available regions and their characteristics.
-
-#### 5.2.3 zone (optional)
-
-**default value**: None
-
-Defines the name of the zone within the region where the cluster resources will be hosted.
-
-**Requirement**: Must be a valid Google Cloud zone. Refer to [Google Cloud documentation](https://cloud.google.com/compute/docs/regions-zones#available)
-for the list of available zones and their characteristics.
-
-### 5.3 Amazon Web Services
-
-#### 5.3.1 region
+#### 5.1.1 region
 
 Defines the label of the AWS EC2 region where the cluster will be created (i.e.: `us-east-2`).
 
@@ -749,7 +812,7 @@ Defines the label of the AWS EC2 region where the cluster will be created (i.e.:
 
 **Post build modification effect**: rebuild of all resources at next `terraform apply`.
 
-#### 5.3.2 availability_zone (optional)
+#### 5.1.2 availability_zone (optional)
 
 **default value**: None
 
@@ -760,9 +823,9 @@ If left blank, it chosen at random amongst the availability zones of the selecte
 [AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#using-regions-availability-zones-describe)
 to find out how list the availability zones.
 
-### 5.4 Microsoft Azure
+### 5.2 Microsoft Azure
 
-#### 5.4.1 location
+#### 5.2.1 location
 
 Defines the label of the Azure location where the cluster will be created (i.e.: `eastus`).
 
@@ -773,7 +836,7 @@ use Azure CLI : `az account list-locations -o table`.
 
 **Post build modification effect**: rebuild of all instances and disks at next `terraform apply`.
 
-#### 5.4.2 azure_resource_group (optional)
+#### 5.2.2 azure_resource_group (optional)
 
 **default value**: None
 
@@ -781,11 +844,87 @@ Defines the name of an already created resource group to use. Terraform
 will no longer attempt to manage a resource group for Magic Castle if
 this variable is defined and will instead create all resources within
 the provided resource group. Define this if you wish to use an already
-created resource group or you do not have subscription level access to
+created resource group or you do not have a subscription-level access to
 create and destroy resource groups.
 
 **Post build modification effect**: rebuild of all instances at next `terraform apply`.
 
+### 5.3 Google Cloud
+
+#### 5.3.1 project
+
+Defines the label of the unique identifier associated with the Google Cloud project in which the resources will be created.
+It needs to corresponds to GCP project ID, which is composed of the project name and a randomly
+assigned number.
+
+**Requirement**: Must be a valid Google Cloud project ID.
+
+**Post build modification effect**: rebuild of all resources at next `terraform apply`.
+
+#### 5.3.2 region
+
+Defines the name of the specific geographical location where the cluster resources will be hosted.
+
+**Requirement**: Must be a valid Google Cloud region. Refer to [Google Cloud documentation](https://cloud.google.com/compute/docs/regions-zones#available)
+for the list of available regions and their characteristics.
+
+#### 5.3.3 zone (optional)
+
+**default value**: None
+
+Defines the name of the zone within the region where the cluster resources will be hosted.
+
+**Requirement**: Must be a valid Google Cloud zone. Refer to [Google Cloud documentation](https://cloud.google.com/compute/docs/regions-zones#available)
+for the list of available zones and their characteristics.
+
+### 5.4 OpenStack and OVH
+
+#### 5.4.1 os_floating_ips (optional)
+
+**default value**: `{}`
+
+Defines a map as an association of instance names (key) to
+pre-allocated floating ip addresses (value). Example:
+```
+  os_floating_ips = {
+    login1 = 132.213.13.59
+    login2 = 132.213.13.25
+  }
+```
+- instances tagged as public that have an entry in this map will be assigned
+the corresponding ip address;
+- instances tagged as public that do not have an entry in this map will be assigned
+a floating ip managed by Terraform.
+- instances not tagged as public that have an entry in this map will
+not be assigned a floating ip.
+
+This variable can be useful if you manage your DNS manually and
+you would like the keep the same domain name for your cluster at each
+build.
+
+**Post build modification effect**: change the floating ips assigned
+to the public instances.
+
+#### 5.4.2 os_ext_network (optional)
+
+**default value**: None
+
+Defines the name of the external network that provides the floating
+ips. Define this only if your OpenStack cloud provides multiple
+external networks, otherwise, Terraform can find it automatically.
+
+**Post build modification effect**: change the floating ips assigned to the public nodes.
+
+#### 5.4.4 subnet_id (optional)
+
+**default value**: None
+
+Defines the ID of the internal IPV4 subnet to which the instances are
+connected. Define this if you have or intend to have more than one
+subnets defined in your OpenStack project. Otherwise, Terraform can
+find it automatically. Can be used to force a v4 subnet when both v4 and v6 exist.
+
+**Post build modification effect**: rebuild of all instances at next `terraform apply`.
 
 ## 6. DNS Configuration and SSL Certificates
 
@@ -889,7 +1028,7 @@ described by the `main.tf` configuration file.
 Terraform should now be able to communicate with your cloud provider.
 To test your configuration file, enter the following command
 ```
-$ terraform plan
+terraform plan
 ```
 
 This command will validate the syntax of your configuration file and
@@ -902,7 +1041,7 @@ file accordingly.
 
 To create the resources defined by your main, enter the following command
 ```
-$ terraform apply
+terraform apply
 ```
 
 The command will produce the same output as the `plan` command, but after
@@ -944,7 +1083,7 @@ variable are detailed in the subsections of **Configuration**.
 For example, to increase the number of computes nodes by one. Open
 `main.tf`, add 1 to `node`'s `count` , save the document and call
 ```
-$ terraform apply
+terraform apply
 ```
 
 Terraform will analyze the difference between the current state and
@@ -959,7 +1098,7 @@ You could do the opposite and reduce the number of compute nodes to 0.
 Once you're done working with your cluster and you would like to recover
 the resources, in the same folder as `main.tf`, enter:
 ```
-$ terraform destroy -refresh=false
+terraform destroy -refresh=false
 ```
 
 The `-refresh=false` flag is to avoid an issue where one or many of the data
@@ -991,7 +1130,7 @@ next application of the plan.
 
 To rebuild the first login node :
 ```
-terraform taint 'module.openstack.openstack_compute_instance_v2.login[0]'
+terraform taint 'module.openstack.openstack_compute_instance_v2.instances["login1"]'
 terraform apply
 ```
 
@@ -1046,8 +1185,8 @@ In case the guest account password needs to be replaced, follow these steps:
 3. Create a variable containing the new guest account password: `NEW_PASSWD=<new_passwd>`.
 Note: this password must respect the FreeIPA password policy. To display the policy, run the following four commands:
     ```bash
-    TF_DATA_YAML=/etc/puppetlabs/code/environments/production/data/terraform_data.yaml
-    echo -e "$(ssh puppet sudo grep admin_passwd $TF_DATA_YAML | cut -d'"' -f2)" | kinit admin
+    TF_DATA_YAML="/etc/puppetlabs/data/terraform_data.yaml"
+    echo -e "$(ssh puppet sudo grep freeipa_passwd $TF_DATA_YAML | cut -d'"' -f4)" | kinit admin
     ipa pwpolicy-show
     kdestroy
     ```
@@ -1066,9 +1205,9 @@ Note: this password must respect the FreeIPA password policy. To display the pol
 
 To add a user account after the cluster is built, log in `mgmt1` and call:
 ```bash
-$ kinit admin
-$ IPA_ADMIN_PASSWD=<freeipa_passwd> IPA_GUEST_PASSWD=<new_user_passwd> /sbin/ipa_create_user.py <username> --sponsor <piname>
-$ kdestroy
+kinit admin
+IPA_ADMIN_PASSWD=<freeipa_passwd> IPA_GUEST_PASSWD=<new_user_passwd> /sbin/ipa_create_user.py <username> --sponsor <piname>
+kdestroy
 ```
 
 The home folder will be created automatically in the moments following the account creation.
@@ -1090,9 +1229,18 @@ https://ipa.yourcluster.domain.tld/
 ```
 
 The FreeIPA administrator credentials are available in the cluster Terraform output.
+If you no longer have the Terraform output, or if you did not display the
+password in the Terraform output, the password can be retrieved with these commands.
+```bash
+TF_DATA_YAML="/etc/puppetlabs/data/terraform_data.yaml"
+ssh puppet sudo grep freeipa_passwd $TF_DATA_YAML | cut -d'"' -f4
+```
+Note that the username for the administrator of FreeIPA is always `admin`.
 
-User created with Mokey do not have a project nor a Slurm account. To add a user to a project and a Slurm account,
-add the user to a group with one of these prefixes : `ctb-`, `def-`, `rpp-` or `rrg-`. You can create new groups
+Users created with Mokey do not have a project nor a Slurm account.
+To add a user to a project and a Slurm account,
+add the user to a group with one of these prefixes :
+`ctb-`, `def-`, `rpp-` or `rrg-`. You can create new groups
 with FreeIPA web interface or using the command-line.
 
 ### 10.4 Increase the Number of Guest Accounts
@@ -1109,29 +1257,14 @@ and the new accounts will be created.
 
 ### 10.5 Restrict SSH Access
 
-By default, port 22 of the login node is accessible from the world.
+By default, port 22 of the instances tagged `public` is reachable by the world.
 If you know the range of ip addresses that will connect to your cluster,
-we strongly recommend you to limit the access to port 22 to this range.
+we strongly recommend that you limit the access to port 22 to this range.
 
-#### 10.5.1 OpenStack
-
-You can use OpenStack web page.
-
-1. In OpenStack web page, go to: **Project** → **Network** → **Security Groups**
-2. In the Security Groups table, there should be a line named like your cluster
-with the suffix `_secgroup`. Click on the corresponding **Managed Rules** button.
-3. Find the line with **22 (SSH)** in the **Port Range** column and
-click on the **Delete Rule** button.
-Click **Delete Rule** in the following message box.
-4. Click on the **Add Rule** button.
-5. Select **SSH** in Rule dropping list
-6. Define the range of ip addresses in the CIDR box.
-7. Click on Add
-8. Repeat 3 to 6 if you have multiple ip ranges.
-
-Try to SSH in your cluster. If the connection times out, your ip address is out
-of the range of you entered or you made a mistake when defining the range.
-Repeat from step 3.
+To limit the access to port 22, refer to
+[section 4.14 firewall_rules](#414-firewall_rules-optional), and replace
+the `cidr` of the `SSH` rule to match the range of ip addresses that
+have be the allowed to connect to the cluster.
 
 ### 10.6 Add Packages to Jupyter Default Python Kernel
 
@@ -1195,7 +1328,7 @@ to ban ip addresses that attempted to login 20 times and failed in a window of 6
 ban time is 24 hours.
 
 
-In the context of a workshop with SSH novices, the 20-attempts rule might be triggered,
+In the context of a workshop with SSH novices, the 20-attempt rule might be triggered,
 resulting in participants banned and puzzled, which is a bad start for a workshop. There are
 solutions to mitigate this problem.
 
@@ -1261,6 +1394,25 @@ then call :
 ```
 terraform apply
 ```
+
+#### 10.9.5 Generate a new SSL certificate
+
+The SSL certificate configured by the dns module is valid for [90 days](https://letsencrypt.org/docs/faq/#what-is-the-lifetime-for-let-s-encrypt-certificates-for-how-long-are-they-valid).
+If you plan to use your cluster for more than 90 days, you will need to generate a
+new SSL certificate before the one installed on the cluster expires.
+
+To generate a new certificate, use the following command on your computer:
+```
+terraform taint 'module.dns.module.acme.acme_certificate.certificate'
+```
+
+Then apply the modification:
+```
+terraform apply
+```
+
+The apply will generate a new certificate, upload it on the nodes that need it
+and reload Apache if it is configured.
 
 ## 11. Customize Magic Castle Terraform Files
 
