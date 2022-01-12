@@ -9,7 +9,7 @@ module "openstack" {
 
   cluster_name = "lab101"
   domain       = "calculquebec.cloud"
-  image        = "CentOS-7-x64-2020-03"
+  image        = "CentOS-7-x64-2021-11"
 
   instances = {
     mgmt   = { type = "p4-7.5gb", tags = ["puppet", "mgmt", "nfs"], count = 1 }
