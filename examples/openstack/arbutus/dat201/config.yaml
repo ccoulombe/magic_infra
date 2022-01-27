@@ -1,5 +1,7 @@
 jupyterhub::jupyterhub_config_hash:
     SbatchForm:
+        account:
+            def: 'def-sponsor00'
         runtime:
             min: 3.5
             def: 4.0
