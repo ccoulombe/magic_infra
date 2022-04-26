@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.14.2"
+  required_version = ">= 1.1.0"
 }
 
 module "openstack" {
@@ -9,7 +9,7 @@ module "openstack" {
 
   cluster_name = "odfe-cluster"
   domain       = "computecanada.dev"
-  image        = "CentOS-7-x64-2020-09"
+  image        = "Rocky-8.5-x64-2021-11"
 
   instances = {
     puppet = { type = "p2-3.75gb", tags = ["puppet"] }

@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.14.2"
+  required_version = ">= 1.1.0"
 }
 
 module "ovh" {
@@ -9,7 +9,7 @@ module "ovh" {
 
   cluster_name = "phoenix"
   domain       = "calculquebec.cloud"
-  image        = "CentOS-7-x64-2019-07"
+  image        = "Rocky Linux 8"
 
   instances = {
     mgmt   = { type = "s1-2", tags = ["puppet", "mgmt", "nfs"], count = 1 }

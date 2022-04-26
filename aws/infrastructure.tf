@@ -78,7 +78,7 @@ locals {
 resource "aws_instance" "instances" {
   for_each          = local.regular_instances
   instance_type     = each.value.type
-  ami               = var.image
+  ami               = lookup(each.value, "image", var.image)
   user_data         = base64gzip(module.instance_config.user_data[each.key])
   availability_zone = local.availability_zone
   placement_group   = contains(each.value.tags, "efa") ? aws_placement_group.efa_group.id : null
@@ -115,7 +115,7 @@ resource "aws_instance" "instances" {
 resource "aws_spot_instance_request" "spot_instances" {
   for_each          = local.spot_instances
   instance_type     = each.value.type
-  ami               = var.image
+  ami               = lookup(each.value, "image", var.image)
   user_data         = base64gzip(module.instance_config.user_data[each.key])
   availability_zone = local.availability_zone
   placement_group   = contains(each.value.tags, "efa") ? aws_placement_group.efa_group.id : null
@@ -146,10 +146,11 @@ resource "aws_spot_instance_request" "spot_instances" {
   depends_on = [aws_internet_gateway.gw]
 
   # spot specific variables
-  wait_for_fulfillment   = lookup(each.value, "wait_for_fulfillment", true)
-  spot_type              = lookup(each.value, "spot_type", "persistent")
-  spot_price             = lookup(each.value, "spot_price", null)
-  block_duration_minutes = lookup(each.value, "block_duration_minutes", null)
+  wait_for_fulfillment           = lookup(each.value, "wait_for_fulfillment", true)
+  spot_type                      = lookup(each.value, "spot_type", "persistent")
+  instance_interruption_behavior = lookup(each.value, "instance_interruption_behavior", "stop")
+  spot_price                     = lookup(each.value, "spot_price", null)
+  block_duration_minutes         = lookup(each.value, "block_duration_minutes", null)
 
 }
 
@@ -202,6 +203,7 @@ locals {
       id          = ! contains(values["tags"], "spot") ? aws_instance.instances[x].id : aws_spot_instance_request.spot_instances[x].spot_instance_id
       hostkeys    = {
         rsa = module.instance_config.rsa_hostkeys[x]
+        ed25519 = module.instance_config.ed25519_hostkeys[x]
       }
     }
   }

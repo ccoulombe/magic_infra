@@ -29,17 +29,24 @@ variable "ssh_private_key" {
   type = string
 }
 
+variable "acme_key_pem" {
+  type = string
+  default = ""
+}
+
 resource "tls_private_key" "private_key" {
+  count = var.acme_key_pem == "" ? 1 : 0
   algorithm = "RSA"
 }
 
 resource "acme_registration" "reg" {
-  account_key_pem = tls_private_key.private_key.private_key_pem
+  count           = var.acme_key_pem == "" ? 1 : 0
+  account_key_pem = tls_private_key.private_key[0].private_key_pem
   email_address   = var.email
 }
 
 resource "acme_certificate" "certificate" {
-  account_key_pem           = acme_registration.reg.account_key_pem
+  account_key_pem           = var.acme_key_pem == "" ? acme_registration.reg[0].account_key_pem : var.acme_key_pem
   common_name               = "${var.name}.${var.domain}"
   subject_alternative_names = ["*.${var.name}.${var.domain}"]
 
@@ -112,14 +119,15 @@ EOF
       "sudo install -m 644 -o root -g root fullchain.pem /etc/letsencrypt/archive/${var.name}.${var.domain}/fullchain1.pem",
       "sudo install -m 644 -o root -g root chain.pem /etc/letsencrypt/archive/${var.name}.${var.domain}/chain1.pem",
       "sudo install -m 644 -o root -g root cert.pem /etc/letsencrypt/archive/${var.name}.${var.domain}/cert1.pem",
-      "sudo install -m 600 -o root -g root privkey.pem /etc/letsencrypt/archive/${var.name}.${var.domain}/privkey1.pem",
+      "sudo install -m 640 -o root -g root privkey.pem /etc/letsencrypt/archive/${var.name}.${var.domain}/privkey1.pem",
       "sudo install -m 644 -o root -g root renewal.conf /etc/letsencrypt/renewal/${var.name}.${var.domain}.conf",
       "sudo ln -sf /etc/letsencrypt/archive/${var.name}.${var.domain}/privkey1.pem /etc/letsencrypt/live/${var.name}.${var.domain}/privkey.pem",
       "sudo ln -sf /etc/letsencrypt/archive/${var.name}.${var.domain}/fullchain1.pem /etc/letsencrypt/live/${var.name}.${var.domain}/fullchain.pem",
       "sudo ln -sf /etc/letsencrypt/archive/${var.name}.${var.domain}/cert1.pem /etc/letsencrypt/live/${var.name}.${var.domain}/cert.pem",
       "sudo ln -sf /etc/letsencrypt/archive/${var.name}.${var.domain}/chain1.pem /etc/letsencrypt/live/${var.name}.${var.domain}/chain.pem",
       "rm cert.pem chain.pem fullchain.pem privkey.pem renewal.conf",
-      "sudo systemctl reload httpd || true",
+      "id -u caddy &> /dev/null && sudo chgrp caddy /etc/letsencrypt/archive/${var.name}.${var.domain}/privkey1.pem",
+      "test -f /usr/lib/systemd/system/caddy.service && sudo systemctl restart caddy || true",
     ]
   }
 }

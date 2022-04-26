@@ -21,7 +21,7 @@ provide a cost estimate of the resources.
 
 ### Creating the workspace
 1. Create a git repository in [GitHub](https://www.github.com/), [GitLab](https://www.gitlab.com/),
-or any of the [version control system provider supported by Terraform Cloud](https://www.terraform.io/docs/cloud/vcs/index.html)
+or any of the [version control system provider supported by Terraform Cloud](https://www.terraform.io/cloud-docs/vcs)
 2. In this git repository, add a copy of the Magic Castle example `main.tf`
 available for the cloud of your choice
 4. Log in [Terraform Cloud account](https://app.terraform.io/signup/account)
@@ -184,3 +184,47 @@ the bottom of the plan page.
 It is possible to apply automatically a successful plan. Go in the "Settings"
 section, and under "Apply method" select "Auto apply". Any following successful
 plan will then be automatically applied.
+
+## Magic Castle, Terraform Cloud and the CLI
+
+Terraform cloud only allows to apply or destroy the plan as stated in the main.tf,
+but sometimes it can be useful to run some other terraform commands that are only
+available through the command-line interface, for example `terraform taint`.
+
+It is possible to import the terraform state of a cluster on your local computer
+and then use the CLI on it.
+
+1. Log in Terraform cloud:
+```sh
+terraform login
+```
+
+2. Create a folder where the terraform state will be stored:
+```sh
+mkdir my-cluster-1
+```
+
+3. Create a file named `cloud.tf` with the following content in your cluster folder:
+```hcl
+terraform {
+  cloud {
+    organization = "REPLACE-BY-YOUR-TF-CLOUD-ORG"
+    workspaces {
+      name = "REPLACE-BY-THE-NAME-OF-YOUR-WORKSPACE"
+    }
+  }
+}
+```
+replace the values of `organization` and `name` with the appropriate value
+for your cluster.
+
+4. Initialize the folder and retrieve the state:
+```sh
+terraform init
+```
+
+To confirm the workspace has been properly imported locally, you can list
+the resources using:
+```sh
+terraform state list
+```

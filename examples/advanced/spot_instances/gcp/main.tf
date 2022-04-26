@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.14.2"
+  required_version = ">= 1.1.0"
 }
 
 module "gcp" {
@@ -9,7 +9,7 @@ module "gcp" {
 
   cluster_name = "spot-gcp"
   domain       = "calculquebec.cloud"
-  image        = "centos-7"
+  image        = "rocky-linux-8"
   nb_users     = 10
 
   instances = {

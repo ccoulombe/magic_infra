@@ -1,5 +1,6 @@
 # Magic Castle
 
+<!-- markdown-link-check-disable-next-line -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4895357.svg)](https://doi.org/10.5281/zenodo.4895357)
 [![Build Status](https://github.com/ComputeCanada/magic_castle/actions/workflows/test.yaml/badge.svg)](https://github.com/ComputeCanada/magic_castle/actions/workflows/test.yaml)
 
@@ -9,7 +10,7 @@ From these new possibilities emerged an open-source software project named Magic
 
 ## Setup
 
-- Install [Terraform](https://releases.hashicorp.com/terraform/) (>= 0.14.2)
+- Install [Terraform](https://releases.hashicorp.com/terraform/) (>= 1.1.0)
 - Download the [latest release of Magic Castle](https://github.com/ComputeCanada/magic_castle/releases) for the cloud provider you wish to use.
 - Uncompress the release
 - Follow the instructions
@@ -47,6 +48,7 @@ and apply their configuration based on the tags defined in the preceding YAML fi
 ## Talks, slides and videos
 
 - [FOSDEM 2020 - Magic Castle: Terraforming the Cloud for HPC](https://fosdem.org/2020/schedule/event/magic_castle/) (2020-02-02)
+- [EasyBuild User Meeting 2021 - Magic Castle: Terraforming the Cloud for HPC](https://www.youtube.com/watch?v=54ph7f2-AL4) (2021-01-27)
 - [Campus Research Computing Consortium - Clusters in the Sky: How Canada is Building Beyond Iaas Cloud with Magic Castle](https://www.youtube.com/watch?v=jWCyUeGmm-8) (2021-05-20)
 
 ## List of other cloud HPC cluster open-source projects

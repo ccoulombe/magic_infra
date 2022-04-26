@@ -68,17 +68,27 @@ resource "azurerm_linux_virtual_machine" "instances" {
     disk_size_gb         = lookup(each.value, "disk_size", 30)
   }
 
+  dynamic "plan" {
+    for_each = var.plan["name"] != null ? [var.plan] : []
+    iterator = plan
+    content {
+      name      = plan.value["name"]
+      product   = plan.value["product"]
+      publisher = plan.value["publisher"]
+    }
+  }
+
   dynamic "source_image_reference" {
-    for_each = can(tomap(var.image)) ? [var.image] : []
+    for_each = can(tomap(lookup(each.value, "image", var.image))) ? [lookup(each.value, "image", var.image)] : []
     iterator = key
     content {
       publisher = key.value["publisher"]
       offer     = key.value["offer"]
       sku       = key.value["sku"]
-      version   = "latest"
+      version   = lookup(key.value, "version", "latest")
     }
   }
-  source_image_id = can(tomap(var.image)) ? null : tostring(var.image)
+  source_image_id = can(tomap(lookup(each.value, "image", var.image))) ? null : tostring(lookup(each.value, "image", var.image))
 
   computer_name  = each.key
   admin_username = "azure"
@@ -97,8 +107,8 @@ resource "azurerm_linux_virtual_machine" "instances" {
 
   priority = contains(each.value["tags"], "spot") ? "Spot" : "Regular"
   # Spot instances specifics
-  max_bid_price   = lookup(each.value, "max_bid_price", null)
-  eviction_policy = lookup(each.value, "eviction_policy", "Deallocate")
+  max_bid_price   = contains(each.value["tags"], "spot") ? lookup(each.value, "max_bid_price", null) : null
+  eviction_policy = contains(each.value["tags"], "spot") ? lookup(each.value, "eviction_policy", "Deallocate") : null
 
   lifecycle {
     ignore_changes = [
@@ -151,6 +161,7 @@ locals {
       id        = azurerm_linux_virtual_machine.instances[x].id
       hostkeys = {
         rsa = module.instance_config.rsa_hostkeys[x]
+        ed25519 = module.instance_config.ed25519_hostkeys[x]
       }
     }
   }

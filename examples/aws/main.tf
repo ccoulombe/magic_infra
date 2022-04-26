@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.14.2"
+  required_version = ">= 1.1.0"
 }
 
 module "aws" {
@@ -9,7 +9,9 @@ module "aws" {
 
   cluster_name = "phoenix"
   domain       = "calculquebec.cloud"
-  image        = "ami-0a7c5b189b6460115" # CentOS 7 -  ca-central-1
+  # Rocky Linux 8 -  ca-central-1
+  # https://rockylinux.org/cloud-images
+  image        = "ami-09ada793eea1559e6"
 
   instances = {
     mgmt  = { type = "t3.large",  count = 1, tags = ["mgmt", "puppet", "nfs"] },

@@ -12,7 +12,7 @@
 ## 1. Setup
 
 To develop for Magic Castle you will need:
-* Terraform (>= 0.14.2)
+* Terraform (>= 1.1.0)
 * git
 * Access to a Cloud (e.g.: Compute Canada Arbutus)
 * Ability to communicate with the cloud provider API from your computer
@@ -172,6 +172,53 @@ the following command:
 cloud-init clean
 ```
 Add `-r` to the previous command to reboot the instance once cloud-init has finishing cleaning.
+
+### 4.2 SELinux
+
+SELinux is enabled on every instances of a Magic Castle cluster. Some applications do not provide
+SELinux policies which can lead to their malfunctionning when SELinux is enabled. It is possible
+to track down the reasons why SELinux is preventing an application to work properly using
+the command-line tool `ausearch`.
+
+If you suspect application `app-a` to be denied by SELinux to work properly, run the following
+command as root:
+```
+ausearch -c app-a --raw | grep denied
+```
+
+To see all requests denied by SELinux:
+```
+ausearch --raw | grep denied
+```
+
+Sometime, the denials are hidden from regular logging. To display all denials, run the following
+command as root:
+```
+semodule --disable_dontaudit --build
+```
+then re-execute the application that is not working properly.
+
+Once you have found the denials that are the cause of the problem, you can create a new policy
+to allow the requests that were previously denied with the following command:
+```
+ausearch -c app-a --raw | grep denied | audit2allow -a -M app-a
+```
+
+Finally, you can install the generated policy using the command provided by `auditallow`.
+
+#### Building the policy package file (.pp) from the enforcement file (.te)
+
+If you need to tweak an existing enforcement file and you want to recompile the policy package,
+you can with the following commands:
+```
+checkmodule -M -m -o my_policy.mod my_policy.te
+semodule_package -o my_policy.pp -m my_policy.mod
+```
+
+#### References
+- https://wiki.gentoo.org/wiki/SELinux
+- https://wiki.gentoo.org/wiki/SELinux/Tutorials/Where_to_find_SELinux_permission_denial_details
+
 
 ## 5. Release
 

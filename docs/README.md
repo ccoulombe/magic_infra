@@ -17,7 +17,7 @@
 ## 1. Setup
 
 To use Magic Castle you will need:
-1. Terraform (>= 0.14.2)
+1. Terraform (>= 1.1.0)
 2. Authenticated access to a cloud
 3. Ability to communicate with the cloud provider API from your computer
 4. A project with operational limits meeting the requirements described in _Quotas_ subsection.
@@ -27,7 +27,7 @@ To use Magic Castle you will need:
 
 To install Terraform, follow the
 [tutorial](https://learn.hashicorp.com/tutorials/terraform/install-cli)
-or go directly on [Terraform download page](https://www.terraform.io/downloads.html).
+or go directly on [Terraform download page](https://www.terraform.io/downloads).
 
 You can verify Terraform was properly installed by looking at the version in a terminal:
 ```
@@ -37,7 +37,7 @@ terraform version
 ### 1.2 Authentication
 
 #### 1.2.1 Amazon Web Services (AWS)
-
+<!-- markdown-link-check-disable -->
 1. Go to [AWS - My Security Credentials](https://console.aws.amazon.com/iam/home?#/security_credentials)
 2. Create a new access key.
 3. In a terminal, export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, environment variables, representing your AWS Access Key and AWS Secret Key:
@@ -45,8 +45,9 @@ terraform version
     export AWS_ACCESS_KEY_ID="an-access-key"
     export AWS_SECRET_ACCESS_KEY="a-secret-key"
     ```
+<!-- markdown-link-check-enable -->
 
-Reference: [AWS Provider - Environment Variables](https://www.terraform.io/docs/providers/aws/index.html#environment-variables)
+Reference: [AWS Provider - Environment Variables](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#environment-variables)
 
 #### 1.2.2 Google Cloud
 
@@ -58,7 +59,7 @@ Reference: [AWS Provider - Environment Variables](https://www.terraform.io/docs/
 1. Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 2. In a terminal, enter : `az login`
 
-Reference : [Azure Provider: Authenticating using the Azure CLI](https://www.terraform.io/docs/providers/azurerm/guides/azure_cli.html)
+Reference : [Azure Provider: Authenticating using the Azure CLI](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/azure_cli)
 
 #### 1.2.4 OpenStack / OVH
 
@@ -326,7 +327,7 @@ provider folder (i.e.: `./aws`).
 
 **Requirement**: Must be a path to a local folder containing the Magic Castle
 Terraform files for the cloud provider of your choice. It can also be a git
-repository. Refer to [Terraform documentation on module source](https://www.terraform.io/docs/language/modules/sources.html#generic-git-repository) for more information.
+repository. Refer to [Terraform documentation on module source](https://www.terraform.io/language/modules/sources#generic-git-repository) for more information.
 
 **Post build modification effect**: `terraform init` will have to be
 called again and the next `terraform apply` might propose changes if the infrastructure
@@ -408,6 +409,9 @@ You can use a custom image if you wish, but configuration management
 should be mainly done through Puppet. Image customization is mostly
 envisioned as a way to accelerate the provisioning process by applying the
 security patches and OS updates in advance.
+
+To specify a different image for an instance type, use the
+[`image` instance attribute](#472-optional-attributes)
 
 **Requirements**: the operating system on the image must be from the RedHat family.
 This includes CentOS (7, 8), Rocky Linux (8), and AlmaLinux (8).
@@ -534,12 +538,13 @@ You are free to define your own additional tags.
 
 #### 4.7.2 Optional attributes
 
-Three optional attributes can be defined:
+Optional attributes can be defined:
 1. `count`: number of virtual machines with this combination of hostname prefix, type and tags to create (default: 1).
-2. `disk_size`: size in gibibytes (GiB) of the instance's root disk containing
+2. `image`: specification of the image to use for this instance type. (default: global [`image`](#46-image) value).
+3. `disk_size`: size in gibibytes (GiB) of the instance's root disk containing
 the operating system and service software
 (default: see the next table).
-3. `disk_type`: type of the instance's root disk (default: see the next table).
+4. `disk_type`: type of the instance's root disk (default: see the next table).
 
 Default root disk's attribute value per provider:
 | Provider | `disk_type` | `disk_size` (GiB) |
@@ -558,6 +563,7 @@ The following sections present the available attributes per provider.
 For instances with the `spot` tags, these attributes can also be set:
 - `wait_for_fulfillment` (default: true)
 - `spot_type` (default: permanent)
+- `instance_interruption_behavior` (default: stop)
 - `spot_price` (default: not set)
 - `block_duration_minutes` (default: not set) [note 1]
 For more information on these attributes, refer to
@@ -648,10 +654,6 @@ keys to your local authentication agent (i.e: `ssh-add`) because Terraform will
 use this key to copy some configuration files with scp on the cluster. Otherwise,
 Magic Castle can create a key pair for unique to this cluster, see section
 [4.15 - generate_ssh_key (optional)](#415-generate_ssh_key-optional).
-
-**Note 2**: The SSH key type has to be ECDSA or RSA for some cloud providers
-including AWS and OpenStack because they do not support ed25519 and DSA
-is deprecated.
 
 **Post build modification effect**: trigger scp of hieradata files at next `terraform apply`.
 The sudoer account `authorized_keys` file will be updated by each instance's Puppet agent
@@ -849,6 +851,31 @@ create and destroy resource groups.
 
 **Post build modification effect**: rebuild of all instances at next `terraform apply`.
 
+#### 5.2.3 plan (optional)
+
+**default value**:
+```hcl
+{
+  name      = null
+  product   = null
+  publisher = null
+}
+```
+
+Purchase plan information for Azure Marketplace image. Certain images from Azure Marketplace
+requires a terms acceptance or a fee to be used. When using this kind of image, you must supply
+the plan details.
+
+For example, to use the official [AlmaLinux image](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/almalinux.almalinux), you have to first add it to your
+account. Then to use it with Magic Castle, you must supply the following plan information:
+```
+plan = {
+  name      = "8_5"
+  product   = "almalinux"
+  publisher = "almalinux"
+}
+```
+
 ### 5.3 Google Cloud
 
 #### 5.3.1 project
@@ -1017,6 +1044,65 @@ Apache configuration expects the following files to exist:
 - `/etc/letsencrypt/live/${domain_name}/chain.pem`
 
 Refer to the [reverse proxy configuration](https://github.com/ComputeCanada/puppet-magic_castle/blob/main/site/profile/manifests/reverse_proxy.pp) for more details.
+
+### 6.4 ACME Account Private Key
+
+To create the wildcard SSL certificate associated with the domain name, Magic Castle
+creates a private key and register a new ACME account with this key. This account
+registration process is done for each new cluster. However, ACME limits the number of
+new accounts that can be created to a maximum of 10 per IP Address per 3 hours.
+
+If you plan to create more than 10 clusters per 3 hours, we recommend registering an
+ACME account first and then provide its private key in PEM format to Magic Castle DNS
+module, using the `acme_key_pem` variable.
+
+#### 6.4.1 How to Generate an ACME Account Private Key
+
+In a separate folder, create a file with the following content
+```hcl
+terraform {
+  required_version = ">= 1.1"
+  required_providers {
+    acme = {
+      source = "vancluever/acme"
+    }
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}
+
+variable "email" {}
+
+provider "acme" {
+  server_url = "https://acme-v02.api.letsencrypt.org/directory"
+}
+resource "tls_private_key" "private_key" {
+  algorithm = "RSA"
+}
+resource "acme_registration" "reg" {
+  account_key_pem = tls_private_key.private_key.private_key_pem
+  email_address   = var.email
+}
+resource "local_file" "acme_key_pem" {
+    content     = tls_private_key.private_key.private_key_pem
+    filename = "acme_key.pem"
+}
+```
+
+In the same folder, enter the following commands and follow the instructions:
+```
+terraform init
+terraform apply
+```
+
+Once done, copy the file named `acme_key.pem` somewhere safe, and where you will be able
+to refer to later on. Then, when the time comes to create a new cluster, add the following
+variable to the DNS module in your `main.tf`:
+```hcl
+acme_key_pem = file("path/to/your/acme_key.pem")
+```
+
 
 ## 7. Planning
 
@@ -1199,23 +1285,45 @@ Note: this password must respect the FreeIPA password policy. To display the pol
     done
     ```
 
-### 10.3 Add a User Account
+### 10.3 Add LDAP Users
 
-#### 10.3.1 With the Command-Line
+Users can be added to Magic Castle LDAP database (FreeIPA) with either one of
+the following methods: hieradata, command-line, and Mokey web-portal. Each
+method is presented in the following subsections.
+
+New LDAP users are automatically assigned a home folder on NFS.
+
+Magic Castle determines if an LDAP user should be member of a Slurm account
+based on its POSIX groups. When a user is added to a POSIX group, a daemon
+try to match the group name to the following regular expression:
+```
+(ctb|def|rpp|rrg)-[a-z0-9_-]*
+```
+
+If there is a match, the user will be added to a Slurm account with the same
+name, and will gain access to the corresponding project folder under `/project`.
+
+**Note**: The regular expression represents how Compute Canada names its resources
+allocation. The regular expression can be redefined, see
+[`profile::accounts:::project_regex`](https://github.com/ComputeCanada/puppet-magic_castle/#profileaccounts)
+
+#### 10.3.1 hieradata
+
+Using the [hieradata variable](#413-hieradata-optional) in the `main.tf`, it is possible to define LDAP users.
+
+Examples of LDAP user definition with hieradata are provided in
+[puppet-magic_castle documentation](https://github.com/computecanada/puppet-magic_castle#profileusersldapusers).
+
+#### 10.3.2 Command-Line
 
 To add a user account after the cluster is built, log in `mgmt1` and call:
 ```bash
 kinit admin
-IPA_ADMIN_PASSWD=<freeipa_passwd> IPA_GUEST_PASSWD=<new_user_passwd> /sbin/ipa_create_user.py <username> --sponsor <piname>
+IPA_GUEST_PASSWD=<new_user_passwd> /sbin/ipa_create_user.py <username> [--group <group_name>]
 kdestroy
 ```
 
-The home folder will be created automatically in the moments following the account creation.
-
-The `<piname>` value will used to create a project folder in `/project` and a Slurm project.
-The project will be named `def-piname`. This step is also done automatically.
-
-#### 10.3.2 With Mokey
+#### 10.3.3 Mokey
 
 If user sign-up with Mokey is enabled, users can create their own account at
 ```
@@ -1236,12 +1344,6 @@ TF_DATA_YAML="/etc/puppetlabs/data/terraform_data.yaml"
 ssh puppet sudo grep freeipa_passwd $TF_DATA_YAML | cut -d'"' -f4
 ```
 Note that the username for the administrator of FreeIPA is always `admin`.
-
-Users created with Mokey do not have a project nor a Slurm account.
-To add a user to a project and a Slurm account,
-add the user to a group with one of these prefixes :
-`ctb-`, `def-`, `rpp-` or `rrg-`. You can create new groups
-with FreeIPA web interface or using the command-line.
 
 ### 10.4 Increase the Number of Guest Accounts
 
@@ -1413,6 +1515,15 @@ terraform apply
 
 The apply will generate a new certificate, upload it on the nodes that need it
 and reload Apache if it is configured.
+
+#### 10.9.3 Set SELinux in permissive mode
+
+SELinux can be set in permissive mode to debug new workflows that would be
+prevented by SELinux from working properly. To do so, add the following line
+to the variable `hieradata` in `main.tf`:
+```yaml
+selinux::mode: 'permissive'
+```
 
 ## 11. Customize Magic Castle Terraform Files
 

@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 0.14.2"
+  required_version = ">= 1.1.0"
 }
 
 module "openstack" {
@@ -9,7 +9,7 @@ module "openstack" {
 
   cluster_name = "k8s-os"
   domain       = "computecanada.dev"
-  image        = "CentOS-7-x64-2020-03"
+  image        = "Rocky-8.5-x64-2021-11"
 
   instances = {
     master   = { type = "c2-7.5gb-31", tags = ["controller", "puppet", "public"], count = 1 }
