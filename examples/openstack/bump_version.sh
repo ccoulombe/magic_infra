@@ -15,5 +15,5 @@ do
 	echo "Bumping version from $from_ver to $to_ver : $fname"
 	sed -i -e "s#\"$from_ver\"#\"$to_ver\"#" \
 	       -e "s#/cloudflare?ref=$from_ver#/cloudflare?ref=$to_ver#" \
-	       -e "s#/openstack?ref=$from_ver#/openstack?=ref=$to_ver#" "$fname"
+	       -e "s#/openstack?ref=$from_ver#/openstack?ref=$to_ver#" "$fname"
 done
