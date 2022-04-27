@@ -27,10 +27,31 @@ jupyterhub::jupyterhub_config_hash:
 
 jupyterhub::enable_otp_auth: false
 
-jupyterhub::admin_groups: ['user55', 'user54', 'user53', 'user52', 'user51']
+jupyterhub::admin_groups: ['helper']
 
 profile::freeipa::mokey::enable_user_signup: false
 
 profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020', 'nvhpc/20.7', 'cuda/11.0', 'java/1.8']
 
 profile::cvmfs::client::repositories: ['cvmfs-config.computecanada.ca', 'soft.computecanada.ca', 'restricted.computecanada.ca']
+
+profile::users::ldap::users:
+    user:
+        count: 50
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00']
+
+    instructor:
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+    helper:
+        count: 4
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+profile::accounts::skel_archives:
+    - filename: main-nbody.zip
+      source: https://github.com/calculquebec/cq-formation-nbody/archive/refs/heads/main.zip
+    - filename: main-convolution.zip
+      source: https://github.com/calculquebec/cq-formation-convolution/archive/refs/heads/main.zip

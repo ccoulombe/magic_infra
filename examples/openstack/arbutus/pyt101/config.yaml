@@ -24,10 +24,29 @@ jupyterhub::jupyterhub_config_hash:
 
 jupyterhub::enable_otp_auth: false
 
-jupyterhub::admin_groups: ['user55', 'user54', 'user53', 'user52', 'user51']
+jupyterhub::admin_groups: ['helper']
 
 jupyterhub::kernel::venv::packages: ['numpy', 'pandas', 'matplotlib']
 
 profile::freeipa::mokey::enable_user_signup: false
 
 profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020']
+
+profile::users::ldap::users:
+    user:
+        count: 50
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00']
+
+    instructor:
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+    helper:
+        count: 4
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+profile::accounts::skel_archives:
+    - filename: python-novice-inflammation-data.zip
+      source: https://swcarpentry.github.io/python-novice-inflammation/data/python-novice-inflammation-data.zip

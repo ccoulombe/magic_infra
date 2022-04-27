@@ -24,16 +24,31 @@ jupyterhub::jupyterhub_config_hash:
 
 jupyterhub::enable_otp_auth: false
 
-jupyterhub::admin_groups: ['user55', 'user54', 'user53', 'user52', 'user51']
+jupyterhub::admin_groups: ['helper']
 
-jupyterhub::slurm_partitions: ['jupyterhub_cpu']
+jupyterhub::slurm_partitions: ['jh_cpu']
 
 profile::freeipa::mokey::enable_user_signup: false
 
 profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020', 'gcc/9', 'openmpi/4.0.3', 'boost-mpi/1.72.0']
 
-# Ensure user sshing to the login from the landing node do not go to jail!
-# profile::fail2ban::ignore_ip: []
+profile::users::ldap::users:
+    user:
+        count: 50
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00']
 
-# Unzip git repo zip into accounts
-# profile::workshop::userzip_url: ""
+    instructor:
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+    helper:
+        count: 4
+        passwd: # SET THE PASSWORD
+        groups: ['def-sponsor00', 'helper']
+
+profile::accounts::skel_archives:
+    - filename: main-nbody.zip
+      source: https://github.com/calculquebec/cq-formation-nbody/archive/refs/heads/main.zip
+    - filename: main-convolution.zip
+      source: https://github.com/calculquebec/cq-formation-convolution/archive/refs/heads/main.zip
