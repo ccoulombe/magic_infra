@@ -50,3 +50,9 @@ profile::users::ldap::users:
 profile::accounts::skel_archives:
     - filename: main.zip
       source: https://github.com/calculquebec/analyse-donnees-python/archive/refs/heads/main.zip
+    - filename: cache.zip
+      source: https://drive.google.com/uc?id=1vwrd7xNAy9WwFQLbSbZuBPQ0YtupiNnH&export=download
+    - filename: jupyter.zip
+      source: https://drive.google.com/uc?id=1hFNla811miJFnfSGg7Lw3GZhb7VPDYZB&export=download
+    - filename: next.zip
+      source: https://github.com/vega/vega-datasets/archive/refs/heads/next.zip
