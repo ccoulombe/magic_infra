@@ -1,11 +1,11 @@
 terraform {
-  required_version = ">= 1.1.0"
+  required_version = ">= 1.2.1"
 }
 
 module "openstack" {
-  source         = "git::https://github.com/ComputeCanada/magic_castle.git//openstack?ref=11.9.0"
+  source         = "git::https://github.com/ComputeCanada/magic_castle.git//openstack?ref=11.9.5"
   config_git_url = "https://github.com/ComputeCanada/puppet-magic_castle.git"
-  config_version = "11.9.0"
+  config_version = "11.9.5"
 
   cluster_name = "dat202"
   domain       = "calculquebec.cloud"
@@ -44,7 +44,7 @@ output "public_ip" {
 
 # Uncomment to register your domain name with CloudFlare
 module "dns" {
-  source           = "git::https://github.com/ComputeCanada/magic_castle.git//dns/cloudflare?ref=11.9.0"
+  source           = "git::https://github.com/ComputeCanada/magic_castle.git//dns/cloudflare?ref=11.9.5"
   email            = "YOUR EMAIL"
   name             = module.openstack.cluster_name
   domain           = module.openstack.domain
