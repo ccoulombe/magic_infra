@@ -17,7 +17,7 @@
 ## 1. Setup
 
 To use Magic Castle you will need:
-1. Terraform (>= 1.1.0)
+1. Terraform (>= 1.2.1)
 2. Authenticated access to a cloud
 3. Ability to communicate with the cloud provider API from your computer
 4. A project with operational limits meeting the requirements described in _Quotas_ subsection.
@@ -464,24 +464,6 @@ Here is an example:
     sku       = "7-CI"
 }
 ```
-
-#### 4.6.3 OVH
-
-SELinux is not enabled in OVH provided images. Since SELinux has to be
-enabled for Magic Castle to work properly, you will need to build a custom image
-with SELinux enabled.
-
-To build such image, we recommend the usage of [Packer](https://www.packer.io/).
-OVH provides a document explaining how to create a new image with Packer:
-[Create a custom OpenStack image with Packer](https://docs.ovh.com/gb/en/public-cloud/packer-openstack-builder/)
-
-Before the end of the shell script ran to configure the image, add the
-following line to activate SELinux:
-```
-sed -i s/^SELINUX=.*$/SELINUX=enforcing/ /etc/selinux/config
-```
-
-Once the image is built, make sure to use to input its name in your `main.tf` file.
 
 ### 4.7 instances
 
@@ -1061,7 +1043,7 @@ module, using the `acme_key_pem` variable.
 In a separate folder, create a file with the following content
 ```hcl
 terraform {
-  required_version = ">= 1.1"
+  required_version = ">= 1.2.1"
   required_providers {
     acme = {
       source = "vancluever/acme"
