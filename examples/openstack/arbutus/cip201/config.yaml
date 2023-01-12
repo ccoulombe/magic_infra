@@ -32,6 +32,8 @@ profile::freeipa::mokey::enable_user_signup: false
 
 profile::cvmfs::client::lmod_default_modules: ['StdEnv/2020']
 
+jupyterhub::kernel::venv::packages: ['numpy', 'cupy']
+
 profile::users::ldap::users:
     user:
         count: 50
