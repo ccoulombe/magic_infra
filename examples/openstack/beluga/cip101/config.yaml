@@ -46,3 +46,8 @@ profile::users::ldap::users:
         count: 4
         passwd: # SET THE PASSWORD
         groups: ['def-sponsor00', 'helper']
+
+
+profile::accounts::skel_archives:
+    - filename: main.zip
+      source: https://github.com/calculquebec/cip101-exercices/archive/refs/heads/main.zip
